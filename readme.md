@@ -7,6 +7,9 @@ For existing project
 
 Place these thing in all your model
     =>use ```App\Uuids;``` (import this at top)
+    
+    
+    
 Inside model class add these
         ```
         use Uuids;
