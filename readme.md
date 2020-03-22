@@ -1,3 +1,5 @@
+composer require devroshan/dbsync
+
 For fresh laravel project onlu
 To change your primary key from integer to [uuid](https://en.wikipedia.org/wiki/Universally_unique_identifier) 
    >php artisan dbsync:convert_to_uuid
