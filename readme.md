@@ -1,17 +1,18 @@
-for fresh laravel project only
-    => > php artisan dbsync:convert_to_uuid
+```composer require devroshan/dbsync```
 
-for existing laravel project
-    =>have to do everything mannually what is done in the convert_to_uuid command
+For fresh laravel project onlu
+To change your primary key from integer to [uuid](https://en.wikipedia.org/wiki/Universally_unique_identifier) 
+   >php artisan dbsync:convert_to_uuid
 
-and
-
-=> > php artisan dbsync:install
+For existing project 
+    >php artisan dbsync:install
 
 Place these thing in all your model
     =>use ```App\Uuids;``` (import this at top)
-
-    inside model class add these
+    
+    
+    
+Inside model class add these
         ```
         use Uuids;
         public $incrementing = false;
