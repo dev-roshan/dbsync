@@ -38,6 +38,9 @@ class convertPkToUuidCommad extends Command
         
     }
 
+    /**
+     * find the default migration file and update it 
+     */
     private function findDefaultMigrationFile(){
         // string to search in a filename.
         $searchString=array();
@@ -74,7 +77,9 @@ class convertPkToUuidCommad extends Command
         $this->initSchema();
         
     }
-
+    /**
+     * make changes to default migration file
+     */
     private function makeChanges($file){
         $this->info($file);
         $string_to_replace="bigIncrements('id')";
@@ -86,6 +91,9 @@ class convertPkToUuidCommad extends Command
         $this->info('file modified.');
     }
 
+    /**
+     * drop all table and runs migration
+     */
     private function initSchema(){
         // copying migration default file to vendor
         $fp=realpath(__DIR__ . DIRECTORY_SEPARATOR . '..');

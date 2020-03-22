@@ -5,6 +5,7 @@ use Illuminate\Foundation\Inspiring;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Process\Process;
+use Illuminate\Database\Schema\Blueprint;
 use DB;
 use Cache;
 use Request;
@@ -40,17 +41,19 @@ class dbsyncInstallCommand extends Command
         $fpl=$fp.'/files/Uuids.php';
         copy($fpl,base_path().'/app/Uuids.php');             
         
-        // if(!Schema::hasTable('export_log')){
-        //     Schema::create('export_log', function (Blueprint $table) {
-        //         $table->bigIncrements('id');
-        //         $table->string('name');
-        //         $table->string('email')->unique();
-        //         $table->timestamp('email_verified_at')->nullable();
-        //         $table->string('password');
-        //         $table->rememberToken();
-        //         $table->timestamps();
-        //     });
-        // }
+        if(!Schema::hasTable('export_logs')){
+            Schema::create('export_logs', function (Blueprint $table) {
+                $table->uuid('id')->primary();
+                $table->uuid('client_id')->nullable();
+                $table->longText('file_path');
+                $table->boolean('is_synced')->default(0);
+                $table->timestamp('exported_at')->default(DB::raw('CURRENT_TIMESTAMP'));
+                $table->timestamps();
+            });
+        }
+        $fpl=$fp.'/files/ExportLog.php';
+        copy($fpl,base_path().'/app/ExportLog.php'); 
+
         $this->info('Completed.');
     }
   
