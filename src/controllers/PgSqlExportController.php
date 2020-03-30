@@ -43,8 +43,9 @@ class PgSqlExportController extends Controller
      * export dump file 
      */
     public function export(Request $request){
-
-     
+        // increasing memory size and execution time
+        ini_set('memory_limit', '500M');
+        ini_set('max_execution_time', 600);
         // retreiving all tables
         $tables=DB::connection($this->conn)->select("SELECT table_schema,table_name FROM information_schema.tables where table_schema = 'public'");
         
@@ -52,8 +53,10 @@ class PgSqlExportController extends Controller
         $data_tables=[];
         foreach($tables as $key=>$table)
         {
-            // checking foreign keys
-            $fk=DB::connection($this->conn)->select("SELECT
+            // dont export migrations table and export_logs table
+            if($table->table_name!="migrations"|| $table->table_name!="export_logs"){
+                // checking foreign keys
+                $fk=DB::connection($this->conn)->select("SELECT
                 tc.table_schema, 
                 tc.constraint_name, 
                 tc.table_name, 
@@ -61,7 +64,7 @@ class PgSqlExportController extends Controller
                 ccu.table_schema AS foreign_table_schema,
                 ccu.table_name AS foreign_table_name,
                 ccu.column_name AS foreign_column_name 
-            FROM 
+                FROM 
                 information_schema.table_constraints AS tc 
                 JOIN information_schema.key_column_usage AS kcu
                 ON tc.constraint_name = kcu.constraint_name
@@ -69,14 +72,16 @@ class PgSqlExportController extends Controller
                 JOIN information_schema.constraint_column_usage AS ccu
                 ON ccu.constraint_name = tc.constraint_name
                 AND ccu.table_schema = tc.table_schema
-            WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name=?",[$table->table_name]);
-            // assigning table to master table without fk
-            if(count($fk)===0){
+                WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name=?",[$table->table_name]);
+                // assigning table to master table without fk
+                if(count($fk)===0){
                 $master_tables[$table->table_name]=$table;
-            }
-            else{
+                }
+                else{
                 $data_tables_fk[$table->table_name]=$fk;
+                }
             }
+         
         }
         // ordering table with fk
         $ordered_data_tables=[];
@@ -150,7 +155,7 @@ class PgSqlExportController extends Controller
         $query='select * from '.$table;
         $data=DB::connection($this->conn)->select($query);
         $query="select column_name, data_type from information_schema.columns where table_name = '".$table."'";
-        $data_type=DB::select($query);
+        $data_type=DB::connection($this->conn)->select($query);
         $dom   = new \DOMDocument( '1.0', 'utf-8' );
         $dom   ->formatOutput = True;
 
@@ -162,7 +167,7 @@ class PgSqlExportController extends Controller
             $node = $dom->createElement( $table );
             foreach( $row as $key => $val )
             {
-                if (strpos($data_type[$i]->data_type, 'text') !== false || strpos($data_type[$i]->data_type, 'character') !== false) {
+                if (strpos($data_type[$i]->data_type, 'text') != false || strpos($data_type[$i]->data_type, 'character') != false) {
                     $child = $dom->createElement( $key );
                     $child ->appendChild( $dom->createCDATASection( $val) );
                 }

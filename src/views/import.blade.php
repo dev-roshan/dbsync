@@ -62,7 +62,6 @@
       processData: false,
       contentType: false,
       cache: false,
-      timeout: 600000,
       success: function (data) {
          if(data.error){
             $('#log_file').attr('href',data.logfile);
@@ -75,7 +74,7 @@
 
       },
       error: function (e) {
-         alert(e.responseJSON.error);
+         alert(e.responseJSON);
          // $("#result").text(e.responseText);
          // console.log("ERROR : ", e);
          // $("#btnSubmit").prop("disabled", false);

@@ -31,7 +31,11 @@ class PgSqlImportController extends Controller
         $this->user=env('DB_USERNAME');
         $this->pass=env('DB_PASSWORD');
         // $this->db=env('DB_DATABASE'); 
-        $this->db="test1"; 
+        // $this->db="test1"; 
+        $this->conn="pgsql2";
+
+        $this->inserted_count=0;
+        $this->updated_count=0;
         
     }
 
@@ -98,6 +102,10 @@ class PgSqlImportController extends Controller
      * importing and syncing
      */
     public function import(Request $request){
+        // increasing memory size and execution time
+        ini_set('memory_limit', '500M');
+        ini_set('max_execution_time', 300);
+
         $validator = Validator::make($request->all(), [
             'file' => 'required' 
         ]);
@@ -118,9 +126,11 @@ class PgSqlImportController extends Controller
                 }
                 else{
                     // foreign key check disabled
-                    DB::select(DB::raw("SET session_replication_role = 'replica'"));
-                    $this->insertAndUpdateData($unzipPath);
-                    DB::select(DB::raw("SET session_replication_role = 'origin'"));
+                    // DB::connection('pgsql2')->select(DB::raw("SET session_replication_role = 'replica'"));
+                    // $this->insertAndUpdateData($unzipPath);
+                    // DB::connection('pgsql2')->select(DB::raw("SET session_replication_role = 'origin'"));
+                    return response()->json([['error' => false],['inserted_data'=>$this->inserted_count],['updated_data'=>$this->updated_count]]);
+    
                 }
 
             }
@@ -198,7 +208,7 @@ class PgSqlImportController extends Controller
                             and kcu.constraint_schema = tco.constraint_schema
                             and kcu.constraint_name = tco.constraint_name
                         where tco.constraint_type = 'UNIQUE' and kcu.table_schema='public' and kcu.table_name ='".$table."'";
-                $unique_keys=DB::select($query);
+                $unique_keys=DB::connection($this->conn)->select($query);
                 if(count($unique_keys)!== 0){
                     // getting uk columns name
                     $uk=array_column($unique_keys, 'key_column');
@@ -211,13 +221,25 @@ class PgSqlImportController extends Controller
                         // for now assuming pk to be id
                         //todo
                         $query="select * from ".$table." where id!= '".$data['id']."' and ";
+                        $i=0;
                         foreach($uk as $key=> $ukeys){
-                            $key==0?$query=$query."(".$ukeys."='".$data[$ukeys]."'":$query=$query." or ".$ukeys."='".$data[$ukeys]."'";
+                            if($data[$ukeys]!=""){
+                                // checking for alphanumeric value 
+                                if(ctype_alnum($data[$ukeys])){
+                                    $i==0?$query=$query."(".$ukeys."='".$data[$ukeys]."'":$query=$query." and ".$ukeys."='".$data[$ukeys]."'";
+                                }
+                                else{
+                                    $data[$ukeys]=preg_replace("/[^[:alnum:]]/u",'',$data[$ukeys]);
+                                    $i==0?$query=$query."(regexp_replace(".$ukeys."::varchar,'[^[:alnum:]]','','g')='".$data[$ukeys]."'":$query=$query." and regexp_replace(".$ukeys."::varchar,'[^[:alnum:]]','','g')='".$data[$ukeys]."'";
+                                }
+
+                                $i++;
+                            }
                             // $query=$query.$ukeys."='".$data[$ukeys]."'";
                             
                         }
                         $query=$query.")";
-                        $exist=DB::select($query);
+                        $exist=DB::connection($this->conn)->select($query);
                             if($exist){
                                 $violation_exists[$table][]=$exist;
                                 $appendTofile="Check for these unique keys ";
@@ -271,7 +293,7 @@ class PgSqlImportController extends Controller
                 $filePath = $file->getRealPath();
                 $xml = simplexml_load_file($filePath);
                 $table=$xml->getName();
-                DB::select(DB::raw("ALTER TABLE ".$table." DISABLE TRIGGER ALL"));
+                DB::connection($this->conn)->select(DB::raw("ALTER TABLE ".$table." DISABLE TRIGGER ALL"));
                 // iterating through every data
                 $data=[];
                 foreach ($xml->children() as $row) {
@@ -279,7 +301,7 @@ class PgSqlImportController extends Controller
                             $data[$key]=trim($row->{$key});
                     }
 
-                    $data_exist=DB::table($table)->where('id',$data['id'])->get();
+                    $data_exist=DB::connection($this->conn)->table($table)->where('id',$data['id'])->get();
                     if(count($data_exist)!=0){
                         $this->updateData($data_exist,$data,$table,$update_log_file);
                     }
@@ -287,7 +309,7 @@ class PgSqlImportController extends Controller
                         $this->insertData($data,$table);
                     }
                 }
-                DB::select(DB::raw("ALTER TABLE ".$table." ENABLE TRIGGER ALL"));
+                DB::connection($this->conn)->select(DB::raw("ALTER TABLE ".$table." ENABLE TRIGGER ALL"));
             }
         }
        
@@ -314,6 +336,7 @@ class PgSqlImportController extends Controller
             }
             $sql=$sql.$keys.") values (".$to_insert_data.")";
             DB::select(DB::raw($sql));
+            $this->inserted_count++;
             
         }
     }
@@ -343,6 +366,7 @@ class PgSqlImportController extends Controller
                 $appendTofile=$appendTofile."\n updated data";
                 $appendTofile=$appendTofile.json_encode($data_exist);
                 Storage::append('/public'.$log_file, $appendTofile);
+                $this->updated_count++;
             }
             else if($data["updated_at"]<$data_exist["updated_at"]){
 

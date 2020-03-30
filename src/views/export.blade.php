@@ -31,8 +31,8 @@
                 // $('#loading-image').hide();
             },
             error: function(err){
-                // debugger;
-                alert(err.statusText);
+                debugger;
+                alert(err.responseJSON);
             }
             });
     });
