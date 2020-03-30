@@ -31,7 +31,6 @@
                 // $('#loading-image').hide();
             },
             error: function(err){
-                debugger;
                 alert(err.responseJSON);
             }
             });
