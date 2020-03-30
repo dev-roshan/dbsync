@@ -88,6 +88,12 @@ class convertPkToUuidCommad extends Command
         $content_chunks=explode($string_to_replace, $content);
         $content=implode($replace_with, $content_chunks);
         file_put_contents($file, $content);
+        $string_to_replace="->id()";
+        $replace_with="->uuid('id')->primary()";
+        $content=file_get_contents($file);
+        $content_chunks=explode($string_to_replace, $content);
+        $content=implode($replace_with, $content_chunks);
+        file_put_contents($file, $content);
         $this->info('file modified.');
     }
 
