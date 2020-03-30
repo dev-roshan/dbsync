@@ -129,7 +129,8 @@ class PgSqlImportController extends Controller
                     // DB::connection('pgsql2')->select(DB::raw("SET session_replication_role = 'replica'"));
                     // $this->insertAndUpdateData($unzipPath);
                     // DB::connection('pgsql2')->select(DB::raw("SET session_replication_role = 'origin'"));
-                    return response()->json([['error' => false],['inserted_data'=>$this->inserted_count],['updated_data'=>$this->updated_count]]);
+                    // return response()->json([['error' => false],['inserted_data'=>$this->inserted_count],['updated_data'=>$this->updated_count]]);
+                    return response()->json(['error' => false,'check'=>'No unique key violation']);
     
                 }
 

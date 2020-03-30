@@ -1,5 +1,5 @@
 {{-- @extends('dbsync::layout') --}}
-
+@include('dbsync::layout')
 
 <!-- <form id="dbexport" type="post" action="/dbsync/export">
     <

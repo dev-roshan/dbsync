@@ -1,4 +1,5 @@
 {{-- @extends('dbsync::layout') --}}
+@include('dbsync::layout')
 
 
 {{-- @section('content') --}}
@@ -68,6 +69,10 @@
             $('#log_file')[0].click();
             alert('Check the downloaded log file.')
          }
+         else{
+            alert(data.check);
+         }
+
          // $("#result").text(data);
          // console.log("SUCCESS : ", data);
          // $("#btnSubmit").prop("disabled", false);

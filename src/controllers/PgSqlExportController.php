@@ -53,6 +53,8 @@ class PgSqlExportController extends Controller
         $data_tables=[];
         foreach($tables as $key=>$table)
         {
+            $master_tables=[];
+            $data_tables_fk=[];
             // dont export migrations table and export_logs table
             if($table->table_name!="migrations"|| $table->table_name!="export_logs"){
                 // checking foreign keys
