@@ -12,6 +12,9 @@ publish vendor files
 
 Place these thing in all your model
     => ```use App\Uuids;``` (import this at top)
+
+Create Symlink of storage
+   >php artisan storage:link
        
 Inside model class add these
         ```
