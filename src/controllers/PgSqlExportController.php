@@ -31,7 +31,7 @@ class PgSqlExportController extends Controller
         $this->user=env('DB_USERNAME');
         $this->pass=env('DB_PASSWORD');
         $this->db=env('DB_DATABASE'); 
-        $this->conn='pgsql2';
+        $this->conn=env('DB_CONNECTION');
         // $this->host=env('DB_HOST');
         // $this->port=env('DB_PORT');
         // $this->user=env('DB_USERNAME');

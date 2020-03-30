@@ -32,7 +32,7 @@ class PgSqlImportController extends Controller
         $this->pass=env('DB_PASSWORD');
         // $this->db=env('DB_DATABASE'); 
         // $this->db="test1"; 
-        $this->conn="pgsql2";
+        $this->conn=env('DB_CONNECTION_2');
 
         $this->inserted_count=0;
         $this->updated_count=0;
