@@ -51,10 +51,10 @@ class PgSqlExportController extends Controller
         
         $master_tables=[];
         $data_tables=[];
+        $data_tables_fk=[];
         foreach($tables as $key=>$table)
         {
-            $master_tables=[];
-            $data_tables_fk=[];
+            
             // dont export migrations table and export_logs table
             if($table->table_name!="migrations"|| $table->table_name!="export_logs"){
                 // checking foreign keys
@@ -169,7 +169,7 @@ class PgSqlExportController extends Controller
             $node = $dom->createElement( $table );
             foreach( $row as $key => $val )
             {
-                if (strpos($data_type[$i]->data_type, 'text') != false || strpos($data_type[$i]->data_type, 'character') != false) {
+                if (strpos($data_type[$i]->data_type, 'text') !== false || strpos($data_type[$i]->data_type, 'character') !== false) {
                     $child = $dom->createElement( $key );
                     $child ->appendChild( $dom->createCDATASection( $val) );
                 }
