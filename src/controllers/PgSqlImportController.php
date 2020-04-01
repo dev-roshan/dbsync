@@ -101,8 +101,9 @@ class PgSqlImportController extends Controller
     /**
      * importing and syncing
      */
-    public function import(Request $request){
+    public function check(Request $request){
         // increasing memory size and execution time
+
         ini_set('memory_limit', '500M');
         ini_set('max_execution_time', 300);
 
@@ -122,7 +123,7 @@ class PgSqlImportController extends Controller
                 $check=$this->iterateFileAndCheckViolation($unzipPath);
                 // unique key validation
                 if(!$check['check']){
-                    return response()->json(['error' => !$check['check'],'logfile'=>'/storage'.$check['log_file']]);
+                    return response()->json(['error' => true,'logfile'=>'/storage'.$check['log_file']]);
                 }
                 else{
                     // foreign key check disabled
@@ -130,7 +131,7 @@ class PgSqlImportController extends Controller
                     // $this->insertAndUpdateData($unzipPath);
                     // DB::connection('pgsql2')->select(DB::raw("SET session_replication_role = 'origin'"));
                     // return response()->json([['error' => false],['inserted_data'=>$this->inserted_count],['updated_data'=>$this->updated_count]]);
-                    return response()->json(['error' => false,'check'=>'No unique key violation']);
+                    return response()->json(['error' => false,'check'=>'No unique key violation','unzip_path'=>$unzipPath]);
     
                 }
 
@@ -150,6 +151,29 @@ class PgSqlImportController extends Controller
         return response()->json(['error' => $validator->messages()->first()], 404);
     }
         
+    }
+
+    public function import(Request $request){
+        if(!isset($_POST['data'])){
+            return response()->json(['error'=>true,'message'=>'Please check for violation first.']);
+        }
+        else{
+            $filepath=$_POST['data'];
+            //  foreign key check disabled
+            DB::connection($this->conn)->beginTransaction();
+            try{
+                DB::connection('pgsql2')->select(DB::raw("SET session_replication_role = 'replica'"));
+                $this->insertAndUpdateData($filepath);
+                DB::connection('pgsql2')->select(DB::raw("SET session_replication_role = 'origin'"));
+                DB::connection($this->conn)->commit();
+            }
+            catch(\Exception $e){
+                DB::connection($this->conn)->rollback();
+                return response()->json(['error'=>true,'message'=>$e->getMessage()]);
+
+            }
+
+        }
     }
 
     /**

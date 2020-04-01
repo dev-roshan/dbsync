@@ -4,7 +4,17 @@
 <!-- <form id="dbexport" type="post" action="/dbsync/export">
     <
 </form> -->
+<style>
+#db_export_overlay {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background: black url("vendor/dbsync/img/loading.gif") center center no-repeat;
+    opacity: .5;
+}
+</style>
 
+<div id="db_export_overlay" hidden></div>
 
 
 {{-- @section('content') --}}
@@ -13,11 +23,11 @@
 <a href="#" id="file_download" target="_blank" download></a>
 <p id="output"></p>
 
+<!-- <div><img src="vendor/dbsync/img/loading.gif" alt="" srcset="" height="150" width="150"></div> -->
 
 <script>
     $('#dbexport').on('click',function(){
-        // debugger;
-        // $('#loading-image').show();
+        $('#db_export_overlay').show();
         var uri='/dbsync/export'
         $.ajax({
             url: uri,
@@ -28,10 +38,10 @@
                 $('#file_download')[0].click()
             },
             complete: function(){
-                // $('#loading-image').hide();
+                $('#db_export_overlay').hide();
             },
             error: function(err){
-                alert(err.responseJSON);
+                alert(err.responseJSON.message);
             }
             });
     });

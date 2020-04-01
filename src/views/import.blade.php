@@ -3,13 +3,27 @@
 
 
 {{-- @section('content') --}}
+<style>
+#db_import_overlay {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background: black url("vendor/dbsync/img/loading.gif") center center no-repeat;
+    opacity: .5;
+}
+</style>
+
+<div id="db_import_overlay" hidden></div>
+
 <form action="{{ route('dbsync_import') }}" id="import_form" method="POST" enctype="multipart/form-data" >
     {{ csrf_field() }}
     <div class="dbsync_group">
         <input name="file" type="file" id="file" class="dbsync_file_input" value="" accept="application/zip" required>
-        <a class="btn btn-primary p-btn" href="#" role="button" id="dbsync_bnt">Import 
+        <a class="btn btn-primary p-btn" href="#" role="button" id="dbsync_bnt">Check 
         </a>
-      
+        <a class="btn btn-success p-btn" href="#" role="button" id="dbimport" disabled>Import <i class="fa fa-files-o" aria-hidden="true"></i>
+      </a>
+      <p id="unzip_file_path" hidden></p>
         <p>*zip file only</p>
     </div>
     
@@ -22,7 +36,7 @@
 <style>
  .dbsync_group{
     width: 25%;
-    border: 2px solid gray;
+    /* border: 2px solid gray; */
     padding: 5px;
  }
  .dbsync_file_input{
@@ -54,11 +68,12 @@
 
    // disabled the submit button
    $("#dbsync_bnt").prop("disabled", true);
+   $('#db_import_overlay').show();
 
    $.ajax({
       type: "POST",
       enctype: 'multipart/form-data',
-      url: "{{ route('dbsync_import') }}",
+      url: "{{ route('dbsync_check') }}",
       data: data,
       processData: false,
       contentType: false,
@@ -70,7 +85,10 @@
             alert('Check the downloaded log file.')
          }
          else{
+            $('#unzip_file_path').val(data.unzip_path);
+            $('#dbimport').attr('disabled',false);
             alert(data.check);
+
          }
 
          // $("#result").text(data);
@@ -78,8 +96,11 @@
          // $("#btnSubmit").prop("disabled", false);
 
       },
+      complete:function(){
+                $('#db_import_overlay').hide();
+         },
       error: function (e) {
-         alert(e.responseJSON);
+         alert(e.responseJSON.message);
          // $("#result").text(e.responseText);
          // console.log("ERROR : ", e);
          // $("#btnSubmit").prop("disabled", false);
@@ -92,6 +113,37 @@
    }
 
    });
+
+
+   $("#dbimport").click(function (event) {
+      $('#db_import_overlay').show();
+      var filepath = $('#unzip_file_path').val();
+      $.ajax({
+      type: "POST",
+      url: "{{ route('dbsync_import') }}",
+      data: {data:filepath},
+      success: function (data) {
+       if(data.error){
+          alert(data.message);
+       }
+       else{
+
+       }
+       
+      },
+      complete:function(){
+            $('#db_import_overlay').hide();
+         },
+      error: function (e) {
+         alert(e.responseJSON.message);
+         // $("#result").text(e.responseText);
+         // console.log("ERROR : ", e);
+         // $("#btnSubmit").prop("disabled", false);
+
+      }
+   });
+   })
+
 
 </script>
 

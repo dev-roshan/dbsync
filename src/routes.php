@@ -7,8 +7,11 @@ Route::group(['namespace' => 'controllers'], function (){
         if(env('DB_CONNECTION')==='pgsql'){
             // export
             Route::get('export', 'PgSqlExportController@export')->name('dbsync_export');
-            // sync
-            Route::post('sync', 'PgSqlImportController@import')->name('dbsync_import');
+            // check
+            Route::post('check', 'PgSqlImportController@check')->name('dbsync_check');
+            // import
+            Route::post('import', 'PgSqlImportController@import')->name('dbsync_import');
+
         }
     });
 });

@@ -52,7 +52,7 @@ class dbSyncServiceProvider extends ServiceProvider
         $this->commands('pktouuid');
 
         // Register additional library
-        $this->app->register('Intervention\Image\ImageServiceProvider');
+        // $this->app->register('Intervention\Image\ImageServiceProvider');
     }
 
     // command registering
