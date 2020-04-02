@@ -1,20 +1,6 @@
-{{-- @extends('dbsync::layout') --}}
-@include('dbsync::layout')
 
-
-{{-- @section('content') --}}
-<style>
-#db_import_overlay {
-    position: fixed;
-    width: 100%;
-    height: 100%;
-    background: black url("vendor/dbsync/img/loading.gif") center center no-repeat;
-    opacity: .5;
-}
-</style>
 
 <div id="db_import_overlay" hidden></div>
-
 <form action="{{ route('dbsync_import') }}" id="import_form" method="POST" enctype="multipart/form-data" >
     {{ csrf_field() }}
     <div class="dbsync_group">
@@ -30,9 +16,6 @@
 </form>
 <a href="#" id="log_file" target="_blank" download></a>
 <p id="output"></p>
-{{-- <a class="btn btn-primary p-btn" href="#" role="button" id="dbsync" >Sync <i class="fa fa-refresh" aria-hidden="true"></i></a> --}}
-<!-- <a href="#" id="sync" target="_blank" download></a> -->
-{{-- <p id="output"></p> --}}
 <style>
  .dbsync_group{
     width: 25%;
@@ -149,6 +132,4 @@
 
 
 
-{{-- @endsection --}}
 
-{{-- @include('dbsync::layout') --}}
