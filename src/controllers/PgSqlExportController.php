@@ -158,6 +158,8 @@ class PgSqlExportController extends Controller
         $data=DB::connection($this->conn)->select($query);
         $query="select column_name, data_type from information_schema.columns where table_name = '".$table."'";
         $data_type=DB::connection($this->conn)->select($query);
+        $data_type=json_decode(json_encode($data_type), true);
+       
         $dom   = new \DOMDocument( '1.0', 'utf-8' );
         $dom   ->formatOutput = True;
 
@@ -169,12 +171,20 @@ class PgSqlExportController extends Controller
             $node = $dom->createElement( $table );
             foreach( $row as $key => $val )
             {
-                if (strpos($data_type[$i]->data_type, 'text') !== false || strpos($data_type[$i]->data_type, 'character') !== false) {
+                // getting column data type
+                $arr = array_filter($data_type, function($ar) use ($key) {
+                    return ($ar['column_name'] == $key);
+                });
+                $arr=reset($arr);
+                $column_data_type=next($arr);
+                
+                if (strpos($column_data_type, 'text') !== false || strpos($column_data_type, 'character') !== false) {
                     $child = $dom->createElement( $key );
                     $child ->appendChild( $dom->createCDATASection( $val) );
                 }
                 else{
-                    $child = $dom->createElement( $key ,$val );
+                        $child = $dom->createElement( $key ,$val );
+                  
                 }
                 // $child ->appendChild( $dom->createCDATASection( $val) );
                 $node  ->appendChild( $child );
