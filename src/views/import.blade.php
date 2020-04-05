@@ -51,7 +51,8 @@
 
    // disabled the submit button
    $("#dbsync_bnt").prop("disabled", true);
-   $('#db_import_overlay').show();
+   $('#db_export_overlay').show();
+   debugger;
 
    $.ajax({
       type: "POST",
@@ -80,7 +81,7 @@
 
       },
       complete:function(){
-                $('#db_import_overlay').hide();
+                $('#db_export_overlay').hide();
          },
       error: function (e) {
          alert(e.responseJSON.message);
@@ -99,7 +100,7 @@
 
 
    $("#dbimport").click(function (event) {
-      $('#db_import_overlay').show();
+      $('#db_export_overlay').show();
       var filepath = $('#unzip_file_path').val();
       $.ajax({
       type: "POST",
@@ -110,12 +111,12 @@
           alert(data.message);
        }
        else{
-
+         alert('sucess!! inserted data='+data.inserted_data+' and updated data='+data.updated_data);
        }
        
       },
       complete:function(){
-            $('#db_import_overlay').hide();
+            $('#db_export_overlay').hide();
          },
       error: function (e) {
          alert(e.responseJSON.message);

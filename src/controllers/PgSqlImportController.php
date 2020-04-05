@@ -154,23 +154,22 @@ class PgSqlImportController extends Controller
     }
 
     public function import(Request $request){
-        if(!isset($_POST['data'])){
+        if(empty($_POST['data'])){
             return response()->json(['error'=>true,'message'=>'Please check for violation first.']);
         }
         else{
             $filepath=$_POST['data'];
-            //  foreign key check disabled
             DB::connection($this->conn)->beginTransaction();
             try{
                 DB::connection('pgsql2')->select(DB::raw("SET session_replication_role = 'replica'"));
-                $this->insertAndUpdateData($filepath);
+                $log_file=$this->insertAndUpdateData($filepath);
                 DB::connection('pgsql2')->select(DB::raw("SET session_replication_role = 'origin'"));
                 DB::connection($this->conn)->commit();
+                return response()->json(['error'=>false,'message'=>'Successfully Synced.','inserted_data'=>$this->inserted_count,'updated_data'=>$this->updated_count]);
             }
             catch(\Exception $e){
                 DB::connection($this->conn)->rollback();
                 return response()->json(['error'=>true,'message'=>$e->getMessage()]);
-
             }
 
         }
@@ -302,7 +301,7 @@ class PgSqlImportController extends Controller
         // $log_file_name= '/dbsync_logs/'.Carbon::now()->toDateString().'_'.Carbon::now()->toTimeString().'.log';
         // Storage::disk('public')->put($log_file_name,'unique key violations');
         $update_log_file= '/dbsync_logs/'.Carbon::now()->toDateString().'_'.Carbon::now()->toTimeString().'.log';
-       
+        Storage::disk('public')->put($update_log_file,'updated data');
 
         // Create recursive directory iterator
         /** @var SplFileInfo[] $files */
@@ -312,6 +311,7 @@ class PgSqlImportController extends Controller
             );
         foreach ($files as $name => $file)
         {
+
             // check if file is xml file or not
             if (strpos($file->getFileName(), '.xml') !== false) {
                 // Get real and relative path for current file
@@ -319,6 +319,7 @@ class PgSqlImportController extends Controller
                 $xml = simplexml_load_file($filePath);
                 $table=$xml->getName();
                 DB::connection($this->conn)->select(DB::raw("ALTER TABLE ".$table." DISABLE TRIGGER ALL"));
+
                 // iterating through every data
                 $data=[];
                 foreach ($xml->children() as $row) {
@@ -337,6 +338,7 @@ class PgSqlImportController extends Controller
                 DB::connection($this->conn)->select(DB::raw("ALTER TABLE ".$table." ENABLE TRIGGER ALL"));
             }
         }
+        return $update_log_file;
        
     }
 
@@ -344,9 +346,11 @@ class PgSqlImportController extends Controller
      * insert new data
      */
     public function insertData($data,$table){
-        try {
-           DB::table($table)->insert($data);
-        } catch (\Exception $e) {
+        // try {
+        //    DB::connection($this->conn)->table($table)->insert($data);
+        // } catch (\Exception $e) {
+        //    dd('inserted');
+
             // removing empty data and key before insert
             $sql="insert into ".$table." (";
             $i=0;
@@ -360,10 +364,10 @@ class PgSqlImportController extends Controller
                 $i++;
             }
             $sql=$sql.$keys.") values (".$to_insert_data.")";
-            DB::select(DB::raw($sql));
+            DB::connection($this->conn)->select(DB::raw($sql));
             $this->inserted_count++;
             
-        }
+        // }
     }
 
     /**
@@ -384,7 +388,7 @@ class PgSqlImportController extends Controller
                     $i++;
                 }
                 $sql=$sql.$post_sql." WHERE id='".$data["id"]."'";
-                DB::select(DB::raw($sql));
+                DB::connection($this->conn)->select(DB::raw($sql));
                 $appendTofile=$table."\n";
                 $appendTofile=$appendTofile."old data \n";
                 $appendTofile=$appendTofile.json_encode($data_exist);

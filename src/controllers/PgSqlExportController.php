@@ -56,8 +56,11 @@ class PgSqlExportController extends Controller
         {
             
             // dont export migrations table and export_logs table
-            if($table->table_name!="migrations"|| $table->table_name!="export_logs"){
+            if($table->table_name!=="migrations" && $table->table_name!=="failed_jobs"){
                 // checking foreign keys
+                if($table->table_name=="migrations"){
+                    dd('asdfasd');
+                }
                 $fk=DB::connection($this->conn)->select("SELECT
                 tc.table_schema, 
                 tc.constraint_name, 
