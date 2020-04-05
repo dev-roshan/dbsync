@@ -102,20 +102,20 @@ class convertPkToUuidCommad extends Command
      */
     private function initSchema(){
         // copying migration default file to vendor
-        $fp=realpath(__DIR__ . DIRECTORY_SEPARATOR . '..');
-        $fpl=$fp.'/files/DatabaseMigrationRepository.php';
-        copy($fpl,base_path().'/vendor/laravel/framework/src/Illuminate/Database/Migrations/DatabaseMigrationRepository.php');             
+        // $fp=realpath(__DIR__ . DIRECTORY_SEPARATOR . '..');
+        // $fpl=$fp.'/files/DatabaseMigrationRepository.php';
+        // copy($fpl,base_path().'/vendor/laravel/framework/src/Illuminate/Database/Migrations/DatabaseMigrationRepository.php');             
         Schema::dropAllTables();
         // changing migration id data type to uuid
-        if(Schema::hasTable('migrations')){
-        DB::statement('drop table migrations');
-        }
-        DB::statement('CREATE TABLE migrations (
-                        migration varchar(255) NOT NULL,
-                        batch int4 NOT NULL,
-                        id uuid NOT NULL,
-                        CONSTRAINT migrations_pkey PRIMARY KEY (id))'
-                     );
+        // if(Schema::hasTable('migrations')){
+        // DB::statement('drop table migrations');
+        // }
+        // DB::statement('CREATE TABLE migrations (
+        //                 migration varchar(255) NOT NULL,
+        //                 batch int4 NOT NULL,
+        //                 id uuid NOT NULL,
+        //                 CONSTRAINT migrations_pkey PRIMARY KEY (id))'
+        //              );
         $output=shell_exec('php artisan migrate:refresh 2>&1; echo $?');
         $this->info($output);
         
