@@ -177,7 +177,11 @@ class PgSqlImportController extends Controller
     }
 
     public function updateExportLog($file_path){
-       $el= ExportLog::where([['exported_by_client_id',env('CLIENT_ID')],['exported_for_client_id',env('EXPORT_CLIENT_ID')],['file_path',$file_path]])->first();
+        // todo check with filename
+        //getting path after storage
+        //$file=strstr($file_path,'/storage');
+       //$el= ExportLog::where([['exported_by_client_id',env('EXPORT_CLIENT_ID')],['exported_for_client_id',env('CLIENT_ID')],['file_path',$file]])->first();
+       $el= ExportLog::where([['exported_by_client_id',env('EXPORT_CLIENT_ID')],['exported_for_client_id',env('CLIENT_ID')],['is_synced',false]])->first();
        if($el){
            $el->is_synced=true;
            $el->save();
@@ -328,7 +332,10 @@ class PgSqlImportController extends Controller
                 $xml = simplexml_load_file($filePath);
                 $table=$xml->getName();
                 DB::connection($this->conn)->select(DB::raw("ALTER TABLE ".$table." DISABLE TRIGGER ALL"));
-
+                
+                $query="select column_name, data_type from information_schema.columns where table_name = '".$table."'";
+                $data_type=DB::connection($this->conn)->select($query);
+                $data_type=json_decode(json_encode($data_type), true);
                 // iterating through every data
                 $data=[];
                 foreach ($xml->children() as $row) {
@@ -338,10 +345,10 @@ class PgSqlImportController extends Controller
 
                     $data_exist=DB::connection($this->conn)->table($table)->where('id',$data['id'])->get();
                     if(count($data_exist)!=0){
-                        $this->updateData($data_exist,$data,$table,$update_log_file);
+                        $this->updateData($data_exist,$data,$table,$update_log_file,$data_type);
                     }
                     else{
-                        $this->insertData($data,$table);
+                        $this->insertData($data,$table,$data_type);
                     }
                 }
                 DB::connection($this->conn)->select(DB::raw("ALTER TABLE ".$table." ENABLE TRIGGER ALL"));
@@ -354,7 +361,7 @@ class PgSqlImportController extends Controller
     /**
      * insert new data
      */
-    public function insertData($data,$table){
+    public function insertData($data,$table,$data_type){
         // try {
         //    DB::connection($this->conn)->table($table)->insert($data);
         // } catch (\Exception $e) {
@@ -382,7 +389,7 @@ class PgSqlImportController extends Controller
     /**
      * update existing data
      */
-    public function updateData($data_exist,$data,$table,$log_file){
+    public function updateData($data_exist,$data,$table,$log_file,$data_type){
         // converting collection to array
         $data_exist=json_decode(json_encode($data_exist->toArray()), true)[0];
         // diff between array
@@ -393,6 +400,17 @@ class PgSqlImportController extends Controller
                 $post_sql="";
                 $i=0;
                 foreach($diff as $key=>$dff){
+
+                    // getting column data type and setting boolen to zero if not set
+                    $arr = array_filter($data_type, function($ar) use ($key) {
+                        return ($ar['column_name'] == $key);
+                    });
+                    $arr=reset($arr);
+                    $column_data_type=next($arr);
+                    if($column_data_type=='boolean' && $dff==""){
+                        $dff=0;
+                    }
+
                     $i==0?$post_sql=$post_sql.$key."= '".$dff."'":$post_sql=$post_sql.",".$key."= '".$dff."'";
                     $i++;
                 }
