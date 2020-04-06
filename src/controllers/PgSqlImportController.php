@@ -165,6 +165,7 @@ class PgSqlImportController extends Controller
                 $log_file=$this->insertAndUpdateData($filepath);
                 DB::connection('pgsql2')->select(DB::raw("SET session_replication_role = 'origin'"));
                 DB::connection($this->conn)->commit();
+                $this->updateExportLog($filepath);
                 return response()->json(['error'=>false,'message'=>'Successfully Synced.','inserted_data'=>$this->inserted_count,'updated_data'=>$this->updated_count]);
             }
             catch(\Exception $e){
@@ -173,6 +174,14 @@ class PgSqlImportController extends Controller
             }
 
         }
+    }
+
+    public function updateExportLog($file_path){
+       $el= ExportLog::where([['exported_by_client_id',env('CLIENT_ID')],['exported_for_client_id',env('EXPORT_CLIENT_ID')],['file_path',$file_path]])->first();
+       if($el){
+           $el->is_synced=true;
+           $el->save();
+       }
     }
 
     /**
