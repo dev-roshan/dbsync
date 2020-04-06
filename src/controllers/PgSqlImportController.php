@@ -166,7 +166,7 @@ class PgSqlImportController extends Controller
                 DB::connection('pgsql2')->select(DB::raw("SET session_replication_role = 'origin'"));
                 DB::connection($this->conn)->commit();
                 $this->updateExportLog($filepath);
-                return response()->json(['error'=>false,'message'=>'Successfully Synced.','inserted_data'=>$this->inserted_count,'updated_data'=>$this->updated_count]);
+                return response()->json(['error'=>false,'message'=>'Successfully Synced.','inserted_data'=>$this->inserted_count,'updated_data'=>$this->updated_count,'log_file'=>$log_file]);
             }
             catch(\Exception $e){
                 DB::connection($this->conn)->rollback();

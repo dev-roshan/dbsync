@@ -111,7 +111,9 @@
           alert(data.message);
        }
        else{
-         alert('sucess!! inserted data='+data.inserted_data+' and updated data='+data.updated_data);
+         $('#log_file').attr('href','/storage/'+data.log_file);
+         $('#log_file')[0].click();
+         alert('sucess!! inserted data='+data.inserted_data+' and updated data='+data.updated_data+'. Check log file for more details.');
        }
        
       },
