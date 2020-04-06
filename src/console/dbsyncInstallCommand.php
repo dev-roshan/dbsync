@@ -44,7 +44,8 @@ class dbsyncInstallCommand extends Command
         if(!Schema::hasTable('export_logs')){
             Schema::create('export_logs', function (Blueprint $table) {
                 $table->uuid('id')->primary();
-                $table->uuid('client_id')->nullable();
+                $table->uuid('exported_by_client_id')->nullable();
+                $table->uuid('exported_for_client_id')->nullable();
                 $table->longText('file_path');
                 $table->boolean('is_synced')->default(0);
                 $table->timestamp('exported_at')->default(DB::raw('CURRENT_TIMESTAMP'));

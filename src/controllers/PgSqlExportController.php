@@ -100,7 +100,7 @@ class PgSqlExportController extends Controller
             }
         }
 
-        $export_data=ExportLog::where('client_id','3f2d5b20-5883-11ea-bf61-03914d8796ac')->orderBy('created_at','desc')->first();
+        $export_data=ExportLog::where([['exported_by_client_id',env('CLIENT_ID')],['exported_for_client_id',env('EXPORT_CLIENT_ID')]])->orderBy('created_at','desc')->first();
         if(!$export_data){
             $file_path=$this->exportAllData($master_tables,$ordered_data_tables);
             $file=$file_path.'.zip';
@@ -130,7 +130,8 @@ class PgSqlExportController extends Controller
     public function updateExportLog($file_path){
         $el=new ExportLog();
         $el->file_path=$file_path;
-        $el->client_id="3f2d5b20-5883-11ea-bf61-03914d8796ac";
+        $el->exported_by_client_id=env('CLIENT_ID');
+        $el->exported_for_client_id=env('EXPORT_CLIENT_ID');
         $el->save();
     }
 
