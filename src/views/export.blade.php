@@ -14,8 +14,14 @@
             cache: false,
             success: function(data){
                 // $('#output').html(data.data);
-                $('#file_download').attr('href',data.file);
-                $('#file_download')[0].click()
+                if(data.has_data){
+                    $('#file_download').attr('href',data.file);
+                    $('#file_download')[0].click()
+                }
+                else{
+                    alert('No data left to export for the client.');
+                }
+               
             },
             complete: function(){
                 $('#db_export_overlay').hide();

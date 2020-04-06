@@ -32,6 +32,8 @@ class PgSqlExportController extends Controller
         $this->pass=env('DB_PASSWORD');
         $this->db=env('DB_DATABASE'); 
         $this->conn=env('DB_CONNECTION');
+        $this->updated_at='';
+        $this->hasData=true;
         // $this->host=env('DB_HOST');
         // $this->port=env('DB_PORT');
         // $this->user=env('DB_USERNAME');
@@ -56,11 +58,9 @@ class PgSqlExportController extends Controller
         {
             
             // dont export migrations table and export_logs table
-            if($table->table_name!=="migrations" && $table->table_name!=="failed_jobs"){
+            if($table->table_name!=="migrations" && $table->table_name!=="failed_jobs" && $table->table_name!=="export_logs"){
                 // checking foreign keys
-                if($table->table_name=="migrations"){
-                    dd('asdfasd');
-                }
+                
                 $fk=DB::connection($this->conn)->select("SELECT
                 tc.table_schema, 
                 tc.constraint_name, 
@@ -100,19 +100,25 @@ class PgSqlExportController extends Controller
             }
         }
 
-        // $export_data=ExportLog::where('client_id','3f2d5b20-5883-11ea-bf61-03914d8796ac')->orderBy('created_at','desc')->first();
-        // if(!$export_data){
+        $export_data=ExportLog::where('client_id','3f2d5b20-5883-11ea-bf61-03914d8796ac')->orderBy('created_at','desc')->first();
+        if(!$export_data){
             $file_path=$this->exportAllData($master_tables,$ordered_data_tables);
-            $this->updateExportLog($file_path);
             $file=$file_path.'.zip';
+            
             return response()->json([
-                // 'data' => $shell_output,
+                'has_data' => $this->hasData,
                 'file'=> $file
             ]);
-        // }
-        // else{
-        //     $this->exportLatestData($master_tables,$ordered_data_tables);
-        // }
+        }
+        else{
+            $this->updated_at=$export_data->updated_at;
+            $file_path=$this->exportLatestData($master_tables,$ordered_data_tables);
+            $file=$file_path.'.zip';
+            return response()->json([
+                'has_data' => $this->hasData,
+                'file'=> $file
+            ]);
+        }
         
     }
 
@@ -122,10 +128,10 @@ class PgSqlExportController extends Controller
      * @return void
      */
     public function updateExportLog($file_path){
-        // $el=new ExportLog();
-        // $el->file_path=$file_path;
-        // $el->client_id="3f2d5b20-5883-11ea-bf61-03914d8796ac";
-        // $el->save();
+        $el=new ExportLog();
+        $el->file_path=$file_path;
+        $el->client_id="3f2d5b20-5883-11ea-bf61-03914d8796ac";
+        $el->save();
     }
 
     /**
@@ -140,14 +146,20 @@ class PgSqlExportController extends Controller
         foreach($master_tables as $mt){
             $file_name="master_".$mt->table_name.".xml";
             $file_path=$path.'/'.$file_name;
-            $this->createXmlFile($file_path,$mt->table_name);
+            $this->createXmlFile($file_path,$mt->table_name,false);
         }
         $i=1;
         foreach($ordered_data_tables as $odt){
             $file_name="dt_".$i++.'_'.$odt.".xml";
             $file_path=$path.'/'.$file_name;
-            $this->createXmlFile($file_path,$odt);
+            $this->createXmlFile($file_path,$odt,false);
         }
+        if(!$this->dir_is_empty($path)){
+        $this->updateExportLog($post_path);
+        $file_path=$path.'/'.'export_logs.xml';
+        $this->createXmlFile($file_path,'export_logs',false);
+        }
+        
         $this->zipFile($path);
         return $post_path;
     }
@@ -156,57 +168,84 @@ class PgSqlExportController extends Controller
      * create xml file for table
      * @param $file full path of file, $table table name
      */
-    public function createXmlFile($file,$table){
-        $query='select * from '.$table;
+    public function createXmlFile($file,$table,$latest){
+        // check if for latest or all data
+        if($latest)
+            $query="select * from ".$table." where updated_at>='".$this->updated_at."'";
+        else
+            $query='select * from '.$table;
+        
         $data=DB::connection($this->conn)->select($query);
         $query="select column_name, data_type from information_schema.columns where table_name = '".$table."'";
         $data_type=DB::connection($this->conn)->select($query);
         $data_type=json_decode(json_encode($data_type), true);
-       
-        $dom   = new \DOMDocument( '1.0', 'utf-8' );
-        $dom   ->formatOutput = True;
-
-        $root  = $dom->createElement( $table );
-        $dom   ->appendChild( $root );
         
-        foreach($data as $row){
-            $i=0;
-            $node = $dom->createElement( $table );
-            foreach( $row as $key => $val )
-            {
-                // getting column data type
-                $arr = array_filter($data_type, function($ar) use ($key) {
-                    return ($ar['column_name'] == $key);
-                });
-                $arr=reset($arr);
-                $column_data_type=next($arr);
-                
-                if (strpos($column_data_type, 'text') !== false || strpos($column_data_type, 'character') !== false) {
-                    $child = $dom->createElement( $key );
-                    $child ->appendChild( $dom->createCDATASection( $val) );
+        if(count($data)!=0){
+            $dom   = new \DOMDocument( '1.0', 'utf-8' );
+            $dom   ->formatOutput = True;
+    
+            $root  = $dom->createElement( $table );
+            $dom   ->appendChild( $root );
+            
+            foreach($data as $row){
+                $i=0;
+                $node = $dom->createElement( $table );
+                foreach( $row as $key => $val )
+                {
+                    // getting column data type
+                    $arr = array_filter($data_type, function($ar) use ($key) {
+                        return ($ar['column_name'] == $key);
+                    });
+                    $arr=reset($arr);
+                    $column_data_type=next($arr);
+                    
+                    if (strpos($column_data_type, 'text') !== false || strpos($column_data_type, 'character') !== false) {
+                        $child = $dom->createElement( $key );
+                        $child ->appendChild( $dom->createCDATASection( $val) );
+                    }
+                    else{
+                            $child = $dom->createElement( $key ,$val );
+                      
+                    }
+                    // $child ->appendChild( $dom->createCDATASection( $val) );
+                    $node  ->appendChild( $child );
+                    $i++;
                 }
-                else{
-                        $child = $dom->createElement( $key ,$val );
-                  
-                }
-                // $child ->appendChild( $dom->createCDATASection( $val) );
-                $node  ->appendChild( $child );
-                $i++;
+                $root->appendChild( $node );
             }
-            $root->appendChild( $node );
+            $dom->save($file );
         }
-        $dom->save($file );
+      
     }
-   
 
     /**
      * export data after the export log exported_at
      */
     public function exportLatestData($master_tables,$ordered_data_tables){
-        $path = public_path().'/file';
-        $cmd="PGPASSWORD='root' /usr/bin/psql -c 'COPY (SELECT * FROM branches) TO STDOUT;' -h localhost -d test -U postgres > /opt/lampp/htdocs/backpack/files.csv 2>&1; echo $?";
-        // $cmd='PGPASSWORD="'.$this->pass.'" psql -c "COPY (SELECT * FROM branches) TO STDOUT;" -h localhost -d test -U postgres > '.$path.' test 2>&1; echo $?';
-        $shell_output=shell_exec($cmd);
+
+        $dt = Carbon::now();
+        $post_path='/storage/backup/'.$dt->toDateString().'_'.$dt->toTimeString().'_backup';
+        $path = public_path().$post_path;
+        $yes=File::makeDirectory($path, $mode = 0777, true, true);
+        // $yes=Storage::makeDirectory(public_path() . "/backup/hello/"); 
+        foreach($master_tables as $mt){
+            $file_name="master_".$mt->table_name.".xml";
+            $file_path=$path.'/'.$file_name;
+            $this->createXmlFile($file_path,$mt->table_name,true);
+        }
+        $i=1;
+        foreach($ordered_data_tables as $odt){
+            $file_name="dt_".$i++.'_'.$odt.".xml";
+            $file_path=$path.'/'.$file_name;
+            $this->createXmlFile($file_path,$odt,true);
+        }
+        if(!$this->dir_is_empty($path)){
+            $this->updateExportLog($post_path);
+            $file_path=$path.'/'.'export_logs.xml';
+            $this->createXmlFile($file_path,'export_logs',true);
+        }
+        $this->zipFile($path);
+        return $post_path;
 
     }
 
@@ -242,10 +281,32 @@ class PgSqlExportController extends Controller
             $zip->addFile($filePath, $relativePath);
         }
         }
-
         // Zip archive will be created only after closing object
-        $zip->close();
+        try{
+            $zip->close();
+        }
+        catch(\Exception $e){
+            $this->hasData=false;
+            // $zip->addFile('No_data.txt', "There is no data for this client to export.");
+            // $zip->close();
+        }
     }
+
+
+    /**
+     * check if directory is empty
+     */
+    function dir_is_empty($dir) {
+        $handle = opendir($dir);
+        while (false !== ($entry = readdir($handle))) {
+          if ($entry != "." && $entry != "..") {
+            closedir($handle);
+            return FALSE;
+          }
+        }
+        closedir($handle);
+        return TRUE;
+      }
 
 
 }
